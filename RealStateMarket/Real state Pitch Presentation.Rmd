@@ -1,0 +1,118 @@
+---
+title: "Developing Data Products Course Project"
+subtitle: "Real State Market in Lima Peru"
+author: "Javier Chang"
+date: "2/4/2021"
+output: 
+  slidy_presentation: 
+    highlight: pygments
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(zoo)
+library(dplyr)
+library(ggplot2)
+```
+
+## Introduction
+
+This is the final Developing Data Products Course Project and the goal of this assignment is to build:
+
+- A **Shiny application** with associated supporting documentation deployed on Rstudio's shiny server. 
+- A **Reproducible pitch presentation** about the application with 5 slides in either Slidify or Rstudio Presenter with an html5 slide deck.
+
+## Data source
+
+The source of information is the BCRP (Peru Central Bank) study that updates the rental and sale prices of real estate on a quarterly basis in the main districts of the city of Lima.
+
+The data repository is found in **Apartment rental and sale price indicator** (<font size="5">https://www.bcrp.gob.pe/estadisticas/indicador-de-precios-de-venta-de-departamentos.html</font>)
+
+Data structure
+<font size="4">
+```{r}
+library(dplyr)
+library(readxl)
+
+# Load Real State data
+dfile <- "precios-inmobiliarios-bd-desagregada-venta-2020-1.xlsx"
+if (!file.exists(dfile)) {
+      download.file("https://www.bcrp.gob.pe/docs/Estadisticas/inmuebles/precios-inmobiliarios-bd-desagregada-venta-2020-1.xlsx",
+                    destfile = dfile)
+}
+venta <- read_excel(dfile)
+names(venta) <- c("Ano", 
+                  "Trim", 
+                  "Precio_USD", 
+                  "Precio_SOL", 
+                  "Precio_SOLConst", 
+                  "Distrito", 
+                  "Superficie", 
+                  "Nro_habitaciones",
+                  "Nro_banos",
+                  "Nro_garages",
+                  "Piso_ubicacion",
+                  "Vista_al_exterior",
+                  "Anos_antiguedad")
+
+# Data cleansing
+venta <- na.omit(venta) %>%
+      filter(Ano>=2010 & Nro_habitaciones<=10) %>%
+      mutate(Nro_habitaciones = as.numeric(Nro_habitaciones),
+             Distrito = tolower(Distrito),
+             AnoTrim = as.yearqtr(paste(Ano, Trim, sep="-")),
+             Precio_USD_m2 = Precio_USD / Superficie
+      )
+
+str(venta)
+```
+</font>
+
+## Real State Market App
+
+Real state market is very dynamic. The price of the apartments in Lima-Peru depends on several variables:
+
+- District: where the apartment is locared
+- Total floor area: the size of the apartment
+- Number of rooms: the number of rooms in the apartment
+- Age of the building: how old is the building
+
+This Shiny App will show the evolution of the sale prices of apartments in Lima. Likewise, this application will predict the sale price of an apartment with similar characteristics to your input on these factors using a linear model.
+
+
+<font size="4">*Shiny App: https://javierchang001.shinyapps.io/RealStateMarket/*</font>
+
+<font size="4">*Source Code: https://github.com/Javierchang001/RealStateMarket/tree/master/RealStateMarket*</font>
+
+<font size="4">*Reproducible Presentation PItch:
+https://rpubs.com/Javierchang001/RealStatePresPitch*</font>
+
+## Real state market in Lima Peru
+
+```{r evolution, fig.height = 5, fig.width = 8}
+## Venta por distrito
+ventasummary <- venta %>%
+      group_by(AnoTrim, Distrito) %>%
+      summarise(Precio_USD_m2=mean(Precio_USD_m2)) %>%
+      ungroup()
+## Venta promedio
+ventaprom <- ventasummary %>%
+      group_by(AnoTrim, Distrito="promedio") %>%
+      summarise(Precio_USD_m2=mean(Precio_USD_m2)) %>%
+      ungroup()
+## Grafica precio venta
+ggplot()+
+      geom_line(data=ventasummary, 
+                aes(x=as.character(AnoTrim), 
+                    y=Precio_USD_m2, 
+                    group=Distrito, 
+                    color=Distrito, 
+                    linetype=Distrito))+
+      ggtitle("Evolution of sales price per square meter") +
+      theme(plot.title = element_text(hjust = 0.5))+
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+      geom_line(data=ventaprom,
+                aes(x=as.character(AnoTrim),
+                y=Precio_USD_m2, group=1), size=1)+
+      labs(x="Quarter", y="Sales price per m2")
+```
