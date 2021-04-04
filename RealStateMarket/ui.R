@@ -37,10 +37,25 @@ shinyUI(fluidPage(
         
         # Show the sales prices evolution and the estimated sales price for a similar apartment
         mainPanel(
-            h4("Evolution of the sale price per square meter of the apartments with similar characteristics to the selected variables. A boxplot is displayed for each quarter."),
-            plotOutput("distPlot"),
-            h4("Estimated sale price for an apartment with similar characteristics"),
-            h4(span(textOutput("estprice")), align="center")
+            
+            tabsetPanel(type = "tabs",
+                        
+                        tabPanel("Results",
+                        h4("Evolution of the sale price per square meter of the apartments with similar characteristics to the selected variables. A boxplot is displayed for each quarter."),
+                        plotOutput("distPlot"),
+                        h4("Estimated sale price for an apartment with similar characteristics"),
+                        h4(span(textOutput("estprice")), align="center")
+                        ),
+                        
+                        tabPanel("Documentation",
+                        h4("Real state market is very dynamic. The price of the apartments in Lima-Peru depends on several variables:"),
+                        h5("- District: where the apartment is locared"),
+                        h5("- Total floor area: the size of the apartment"),
+                        h5("- Number of rooms: the number of rooms in the apartment"),
+                        h5("- Age of the building: how old is the building"),
+                        h4("This Shiny App will show the evolution of the sale prices of apartments in Lima. Likewise, this application will predict the sale price of an apartment with similar characteristics to your input on these factors using a linear model")
+                    )
+            )
         )
     )
 )
